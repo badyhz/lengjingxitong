@@ -193,6 +193,26 @@
   (function(){
     if (typeof MANUAL_MODE === 'undefined' || !MANUAL_MODE) return;
 
+    // Step4 维度定义（与step4_linked.txt保持一致）
+    const STEP4_DIMENSIONS = [
+      // 10 个更底层维度
+      { key:"focus", name:"🎯 专注力", desc:"在干扰环境中保持注意力，必要时切换任务状态。" },
+      { key:"wm", name:"🧠 工作记忆", desc:"同时处理多个信息和任务的心智缓存能力。" },
+      { key:"learn", name:"📚 学习迁移", desc:"从经验中学习，并将知识应用到新情况中。" },
+      { key:"affect", name:"😌 情绪调节", desc:"觉察和管理自己的情绪状态，保持稳定表现。" },
+      { key:"boundary", name:"🛡️ 边界管理", desc:"明确个人边界，在关系中维护自己的需求。" },
+      { key:"uncertainty", name:"🌊 应对不确定", desc:"在信息不完整的情况下仍能稳定行动。" },
+      { key:"calibration", name:"🎯 现实感知", desc:"准确判断情况，基于事实而非情绪做决定。" },
+      { key:"habit", name:"🔄 习惯养成", desc:"将重要行为变成自动化的日常习惯。" },
+      { key:"social", name:"🤝 人际理解", desc:"理解他人想法和感受，在团队中有效协作。" },
+      { key:"meaning", name:"✨ 意义构建", desc:"为自己的经历和行动找到意义和价值。" },
+      // 必备 4 维
+      { key:"thinking", name:"🧩 思维方式", desc:"用不同角度和方法来分析和解决问题。" },
+      { key:"logic", name:"🔗 逻辑推理", desc:"用清晰的逻辑来分析问题和做决定。" },
+      { key:"entropy", name:"⚡ 混乱管理", desc:"在混乱环境中保持效率，建立有序的工作方式。" },
+      { key:"insight", name:"💡 洞察发现", desc:"敏锐发现问题本质和相关趋势。" }
+    ];
+
     // 初始化输入默认值
     document.addEventListener('DOMContentLoaded', () => {
       rebuildManualEditorUI();
@@ -237,7 +257,11 @@
       indices7: null,
     };
 
+    // 将manualState暴露到全局作用域，确保其他函数可以访问
+    window.manualState = manualState;
+
     const clamp = (x)=> Math.max(0, Math.min(100, Number(x)||50));
+    
     function parseList(id, n){
       const el = document.getElementById(id);
       const txt = (el && el.value || '').trim();
@@ -253,24 +277,14 @@
     // 动态读取生态维度名称，避免在常量尚未定义时回退到“生态1-16”
     function getEcoNames(){
       try{
-        // 优先使用全局ECO16常量
-        if(Array.isArray(window.ECO16) && window.ECO16.length >= 16){ 
-          console.log('[getEcoNames] 使用 window.ECO16:', window.ECO16.slice(0,16)); 
-          return window.ECO16.slice(0,16); 
-        }
-        // 其次使用ECO_META的键名
-        if(typeof window.ECO_META==='object' && window.ECO_META){
-          const keys = Object.keys(window.ECO_META).slice(0,16);
-          if(keys.length >= 16) {
-            console.log('[getEcoNames] 使用 ECO_META keys:', keys);
-            return keys;
-          }
-        }
-        // 最后检查本地定义的ECO16
-        if(typeof ECO16 !== 'undefined' && Array.isArray(ECO16) && ECO16.length >= 16) {
-          console.log('[getEcoNames] 使用本地 ECO16:', ECO16.slice(0,16));
-          return ECO16.slice(0,16);
-        }
+        // 使用标准的ECO16名称
+        const ECO16_NAMES = [
+          "信任速度","协作质量","关系韧性","影响半径","目标推进力","节奏管理",
+          "应变效率","落地闭环度","洞察敏锐度","表达条理度","信息整合度","改进驱动力",
+          "能量外放","冲突风格","环境贴合度","幸福感基础"
+        ];
+        console.log('[getEcoNames] 使用标准ECO16名称:', ECO16_NAMES);
+        return ECO16_NAMES;
       }catch(e){
         console.warn('[getEcoNames] 错误:', e);
       }
@@ -292,6 +306,7 @@
         <details open style="margin-top:8px"><summary>生态16</summary><div id="editor-eco16"></div></details>
         <details open style="margin-top:8px"><summary>潜力自评8</summary><div id="editor-pot-self8"></div></details>
         <details open style="margin-top:8px"><summary>潜力环境8</summary><div id="editor-pot-env8"></div></details>
+        <details open style="margin-top:8px"><summary>Step4 本质勾选结果（14）</summary><div id="editor-step4-essence"></div></details>
         <details open style="margin-top:8px"><summary>熵增</summary>
           <div id="editor-entropy">
             <div style="display:flex;gap:8px;align-items:center;margin-top:6px">
@@ -356,10 +371,13 @@
       buildRows('editor-bf5', BF5_NAMES, 'bf5');
       buildRows('editor-struct-self8', STRUCT_NAMES, 'struct-self8');
       buildRows('editor-struct-env8', STRUCT_NAMES, 'struct-env8');
-      // 生态16：用实时的中文维度名（如“信任速度”等）
+      // 生态16：用实时的中文维度名（如"信任速度"等）
       buildRows('editor-eco16', getEcoNames(), 'eco16');
       buildRows('editor-pot-self8', POT_NAMES, 'pot-self8');
       buildRows('editor-pot-env8', POT_NAMES, 'pot-env8');
+      // Step4 本质勾选结果：使用STEP4_DIMENSIONS的名称
+      const STEP4_NAMES = STEP4_DIMENSIONS.map(dim => dim.name);
+      buildRows('editor-step4-essence', STEP4_NAMES, 'step4-essence');
       const IND7_NAMES = ['差异','核稳定','自整合','结构均衡','潜力均衡','完整','自信'];
       buildRows('editor-indices7', IND7_NAMES, 'indices7');
       const re = document.getElementById('range-entropy');
@@ -394,6 +412,17 @@
       manualState.eco16       = document.getElementById('num-eco16-0')       ? getVals('eco16',16)        : parseList('manual-eco16',16);
       manualState.pot_self8   = document.getElementById('num-pot-self8-0')   ? getVals('pot-self8',8)     : parseList('manual-pot-self8',8);
       manualState.pot_env8    = document.getElementById('num-pot-env8-0')    ? getVals('pot-env8',8)      : parseList('manual-pot-env8',8);
+      manualState.step4_essence = document.getElementById('num-step4-essence-0') ? getVals('step4-essence',14) : Array(14).fill(50);
+      
+      // 保存Step4数据到命名空间存储，确保Step4模块能读取到
+      if (manualState.step4_essence && manualState.step4_essence.length === 14) {
+        setNS('step4_scores', manualState.step4_essence);
+        // 同时保存一个简单的meta对象，标记数据来源
+        setNS('step4_meta', {
+          source: 'manual_editor',
+          timestamp: new Date().toISOString()
+        });
+      }
       // 熵增与提示
       const eVal = document.getElementById('manual-entropy')?.value;
       manualState.entropy = (eVal!==undefined && eVal!=='' && !isNaN(Number(eVal))) ? clamp(Number(eVal)) : null;
@@ -546,6 +575,9 @@
       saveToLocalStorage();
     }
 
+    // 将applyManualState暴露到全局作用域
+    window.applyManualState = applyManualState;
+
     // 本地存储功能
     function saveToLocalStorage() {
       try {
@@ -575,6 +607,7 @@
             eco16: data.eco16 || Array(16).fill(50),
             pot_self8: data.pot_self8 || Array(8).fill(50),
             pot_env8: data.pot_env8 || Array(8).fill(50),
+            step4_essence: data.step4_essence || Array(14).fill(50),
             entropy: data.entropy,
             entropyTips: data.entropyTips || [],
             indices7: data.indices7
@@ -593,7 +626,7 @@
     // 从manualState更新UI
     function updateUIFromManualState() {
       // 更新滑动条和数字输入框
-      ['bf5', 'struct-self8', 'struct-env8', 'eco16', 'pot-self8', 'pot-env8', 'indices7'].forEach(key => {
+      ['bf5', 'struct-self8', 'struct-env8', 'eco16', 'pot-self8', 'pot-env8', 'step4-essence', 'indices7'].forEach(key => {
         const stateKey = key.replace('-', '_');
         const values = manualState[stateKey];
         if (values && Array.isArray(values)) {
@@ -811,6 +844,32 @@
       <div class="indices-grid" id="indicesGrid">
         <!-- 指数卡片将通过JavaScript动态生成 -->
       </div>
+    </div>
+  </div>
+
+  <!-- Step4 本质结果展示模块 -->
+  <div class="card" id="step4EssenceModule" style="margin-top:16px">
+    <h3>
+      Step4 本质勾选结果
+      <button class="btn" id="toggleStep4Essence" style="padding:4px 8px;font-size:12px">收起 ▲</button>
+    </h3>
+    <div class="step4-essence-content" id="step4EssenceContent">
+      <div class="smallnote" style="margin-bottom:12px">展示Step4中14个维度的本质勾选结果，不含任何权重计算，仅显示原始评估数据。</div>
+      <div class="step4-dimensions-grid" id="step4DimensionsGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px">
+        <!-- Step4维度卡片将通过JavaScript动态生成 -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 结构化文本模块 -->
+  <div class="card" id="structuredTextModule" style="margin-top:16px">
+    <h3>
+      结构化数据导出
+      <button class="btn" id="copyAllDataBtn" style="padding:4px 8px;font-size:12px;background:#2d5a27;border-color:#4a8c3a">复制所有数据</button>
+    </h3>
+    <div class="structured-text-content" id="structuredTextContent">
+      <div class="smallnote" style="margin-bottom:8px">点击上方按钮复制所有数据到剪贴板，包含Big Five三源合成、熵增、结构、生态、潜力和心理指数分析等完整信息。</div>
+      <pre id="structuredTextDisplay" style="background:#0c1433;border:1px solid #2a3b7a;border-radius:8px;padding:12px;font-size:12px;line-height:1.4;color:#d3dcff;white-space:pre-wrap;word-wrap:break-word;max-height:400px;overflow-y:auto"></pre>
     </div>
   </div>
 </div>
@@ -3115,6 +3174,475 @@ function __updateChartsByLabels_Filtered(vectors){
     if(!window.PSYS){ console.warn('PSYS not loaded'); return; }
     PSYS.saveStep(partName, {manual:true, savedAt: new Date().toISOString()});
   };
+
+  // 结构化文本模块功能
+  function collectAllData() {
+    const data = {};
+    
+    // 使用manualState对象中的数据，而不是直接从UI读取
+    // 这样可以确保使用applyManualState()更新后的最新数据
+    // 添加安全检查，确保manualState已定义
+    const globalManualState = window.manualState;
+    if (typeof globalManualState === 'undefined') {
+      console.error('[复制数据] manualState未定义，使用默认值');
+      // 如果manualState未定义，从UI元素直接读取
+      const getCurrentValues = (prefix, count) => {
+        const values = [];
+        for (let i = 0; i < count; i++) {
+          const numEl = document.getElementById(`num-${prefix}-${i}`);
+          values.push(numEl ? Number(numEl.value) || 50 : 50);
+        }
+        return values;
+      };
+      
+      var currentState = {
+        bf5: getCurrentValues('bf5', 5),
+        struct_self8: getCurrentValues('struct-self8', 8),
+        struct_env8: getCurrentValues('struct-env8', 8),
+        eco16: getCurrentValues('eco16', 16),
+        pot_self8: getCurrentValues('pot-self8', 8),
+        pot_env8: getCurrentValues('pot-env8', 8),
+        step4_essence: getCurrentValues('step4-essence', 14),
+        entropy: document.getElementById('manual-entropy')?.value || null,
+        entropyTips: document.getElementById('manual-entropy-tips')?.value?.split('\n').filter(t => t.trim()) || [],
+        indices7: getCurrentValues('indices7', 7)
+      };
+    } else {
+      var currentState = {
+        bf5: globalManualState.bf5 || Array(5).fill(50),
+        struct_self8: globalManualState.struct_self8 || Array(8).fill(50),
+        struct_env8: globalManualState.struct_env8 || Array(8).fill(50),
+        eco16: globalManualState.eco16 || Array(16).fill(50),
+        pot_self8: globalManualState.pot_self8 || Array(8).fill(50),
+        pot_env8: globalManualState.pot_env8 || Array(8).fill(50),
+        step4_essence: globalManualState.step4_essence || Array(14).fill(50),
+        entropy: globalManualState.entropy,
+        entropyTips: globalManualState.entropyTips || [],
+        indices7: globalManualState.indices7
+      };
+    }
+    
+    // 1. Big Five 三源合成结果
+    const bfData = loadBigFiveData();
+    const weightMode = document.getElementById('weightMode')?.value || 'balanced';
+    const synthesizedBF = synthesizeBigFive(bfData, weightMode);
+    data.bigFive = {
+      step1_self: bfData.step1_bf || currentState.bf5,
+      step2_env: bfData.step2_bf_env,
+      step3_env: bfData.step3_bf_env,
+      step4_env: bfData.step4_bf_env,
+      synthesized: synthesizedBF,
+      weightMode: weightMode
+    };
+    
+    // 2. 熵增（噪声）
+    data.entropy = {
+      value: currentState.entropy || calculateEntropy(),
+      tips: currentState.entropyTips || []
+    };
+    
+    // 3. 结构 8 自评
+    data.structure_self = currentState.struct_self8;
+    
+    // 4. 结构 8 环境
+    data.structure_env = currentState.struct_env8;
+    
+    // 5. 生态 16
+    data.ecology = currentState.eco16;
+    
+    // 6. 潜力 8 自评
+    data.potential_self = currentState.pot_self8;
+    
+    // 7. 潜力 8 环境
+    data.potential_env = currentState.pot_env8;
+    
+    // 8. 心理指数分析
+    try {
+      const vectors = {
+        struct_self: currentState.struct_self8,
+        struct_env: currentState.struct_env8,
+        eco: currentState.eco16,
+        pot_self: currentState.pot_self8,
+        pot_env: currentState.pot_env8
+      };
+      const indicesData = prepareIndicesData(vectors);
+      const indices = window.IndicesCalculator?.computeAllIndices(indicesData, indicesConfig) || {};
+      data.indices = indices;
+    } catch (e) {
+      console.warn('Failed to compute indices for structured text:', e);
+      data.indices = {};
+    }
+    
+    // 9. M · 差异指数（别名）
+    data.differenceIndex = data.indices.difference || data.indices.masking || null;
+    
+    // 10. Step4 本质勾选结果
+    const step4Data = loadStep4EssenceData();
+    data.step4Essence = {
+      hasData: step4Data.meta && Object.keys(step4Data.meta).length > 0,
+      scores: step4Data.scores || [],
+      meta: step4Data.meta || {}
+    };
+    
+    return data;
+  }
+  
+  function formatStructuredText(data) {
+    const timestamp = new Date().toLocaleString('zh-CN');
+    const BF5_NAMES = ['开放性', '尽责性', '外向性', '宜人性', '神经质'];
+    const STRUCT_NAMES = ['镜面', '筋骨', '水流', '火焰', '指南针', '盾牌', '桥梁', '岩石'];
+    const POT_NAMES = ['创新', '领导', '艺术', '学习', '社交', '创业', '科研', '幸福'];
+    
+    let text = `心理测评数据导出\n生成时间：${timestamp}\n\n`;
+    
+    // Big Five 三源合成结果
+    text += '=== Big Five 三源合成结果 ===\n';
+    text += `权重模式：${data.bigFive.weightMode}\n`;
+    if (data.bigFive.step1_self) {
+      text += '自评结果：' + BF5_NAMES.map((name, i) => `${name}=${data.bigFive.step1_self[i]}`).join(', ') + '\n';
+    }
+    if (data.bigFive.synthesized) {
+      text += '三源合成：' + BF5_NAMES.map((name, i) => `${name}=${data.bigFive.synthesized[i]?.toFixed(1) || 'N/A'}`).join(', ') + '\n';
+    }
+    text += '\n';
+    
+    // 熵增（噪声）
+    text += '=== 熵增（噪声） ===\n';
+    text += `熵增值：${data.entropy.value || 'N/A'}\n`;
+    if (data.entropy.tips && data.entropy.tips.length > 0) {
+      text += '熵增提示：\n' + data.entropy.tips.map(tip => `  - ${tip}`).join('\n') + '\n';
+    }
+    text += '\n';
+    
+    // 结构 8 自评
+    text += '=== 结构 8 自评 ===\n';
+    text += STRUCT_NAMES.map((name, i) => `${name}：${data.structure_self[i]}`).join('\n') + '\n\n';
+    
+    // 结构 8 环境
+    text += '=== 结构 8 环境 ===\n';
+    text += STRUCT_NAMES.map((name, i) => `${name}：${data.structure_env[i]}`).join('\n') + '\n\n';
+    
+    // 结构徽章
+    text += '=== 结构徽章 ===\n';
+    text += STRUCT_NAMES.map((name, i) => {
+      const val = data.structure_env[i];
+      const level = val >= 80 ? 'high' : (val >= 60 ? 'mid' : 'low');
+      // 查找对应的文字描述
+      const badgeText = BAND_TEXT[name];
+      if (badgeText && badgeText[level]) {
+        return `${name}：${badgeText[level]}`;
+      } else {
+        const levelText = val >= 70 ? '高' : (val <= 50 ? '低' : '中');
+        return `${name}：${Math.round(val)}（${levelText}）`;
+      }
+    }).join('\n') + '\n\n';
+    
+    // 生态 16
+    text += '=== 生态 16 ===\n';
+    // 直接使用ECO16常量
+    text += ECO16.map((name, i) => `${name}：${data.ecology[i]}`).join('\n') + '\n\n';
+    
+    // 生态徽章
+    text += '=== 生态徽章 ===\n';
+    // 直接使用ECO16常量
+    text += ECO16.map((name, i) => {
+      const val = data.ecology[i];
+      const level = val >= 80 ? 'high' : (val >= 60 ? 'mid' : 'low');
+      // 查找对应的文字描述 - 使用ECO_META而不是BAND_TEXT
+      const ecoMeta = ECO_META[name];
+      if (ecoMeta && ecoMeta[level] && ecoMeta[level].length > 0) {
+        // 随机选择一个描述
+        const descriptions = ecoMeta[level];
+        const randomDesc = descriptions[Math.floor(Math.random() * descriptions.length)];
+        return `${name}：${randomDesc}`;
+      } else {
+        const levelText = val >= 80 ? '高' : (val >= 60 ? '中' : '低');
+        return `${name}：${Math.round(val)}（${levelText}）`;
+      }
+    }).join('\n') + '\n\n';
+    
+    // 潜力 8 自评
+    text += '=== 潜力 8 自评 ===\n';
+    text += POT_NAMES.map((name, i) => `${name}：${data.potential_self[i]}`).join('\n') + '\n\n';
+    
+    // 潜力 8 环境
+    text += '=== 潜力 8 环境 ===\n';
+    text += POT_NAMES.map((name, i) => `${name}：${data.potential_env[i]}`).join('\n') + '\n\n';
+    
+    // 心理指数分析
+    text += '=== 心理指数分析 ===\n';
+    const indicesNames = {
+      difference: 'M · 差异指数',
+      kernel_stability: '核稳定指数',
+      self_integration: '自整合指数',
+      circularity_struct: '结构均衡指数',
+      circularity_pot: '潜力均衡指数',
+      completeness: '完整指数',
+      confidence: '自信指数'
+    };
+    
+    Object.entries(indicesNames).forEach(([key, name]) => {
+      const indexObj = data.indices[key];
+      if (indexObj && typeof indexObj === 'object' && indexObj.value !== undefined) {
+        text += `${name}：${typeof indexObj.value === 'number' ? Math.round(indexObj.value) : indexObj.value}\n`;
+      } else if (indexObj !== undefined && indexObj !== null) {
+        text += `${name}：${typeof indexObj === 'number' ? Math.round(indexObj) : indexObj}\n`;
+      }
+    });
+    
+    // M · 差异指数（单独显示）
+    if (data.differenceIndex !== null && typeof data.differenceIndex === 'number') {
+      text += `\n=== M · 差异指数 ===\n`;
+      text += `差异指数：${Math.round(data.differenceIndex)}\n`;
+    }
+    
+    // Step4 本质勾选结果
+    if (data.step4Essence) {
+      text += `\n=== Step4 本质勾选结果 ===\n`;
+      STEP4_DIMENSIONS.forEach((dimension, index) => {
+        // 如果有实际数据使用实际分数，否则使用默认的50
+        const score = data.step4Essence.hasData ? (data.step4Essence.scores[index] || 0) : 50;
+        const dimMeta = data.step4Essence.hasData ? (data.step4Essence.meta[dimension.key] || {}) : {};
+        const tags = dimMeta.tags || [];
+        text += `${dimension.name}：${score}`;
+        if (tags.length > 0) {
+          text += ` [标签: ${tags.join(', ')}]`;
+        }
+        text += '\n';
+      });
+    }
+    
+    return text;
+  }
+  
+  function updateStructuredTextDisplay() {
+    const data = collectAllData();
+    const formattedText = formatStructuredText(data);
+    const display = document.getElementById('structuredTextDisplay');
+    if (display) {
+      display.textContent = formattedText;
+    }
+  }
+  
+  function copyAllDataToClipboard() {
+    // 先刷新最新数据，确保手动编辑的数据已生效
+    if (typeof window.applyManualState === 'function') {
+      window.applyManualState();
+    }
+    
+    // 增加延迟时间，确保数据更新完成
+    setTimeout(() => {
+      const data = collectAllData();
+      const formattedText = formatStructuredText(data);
+      
+      // 添加调试信息
+      console.log('[复制数据] 当前window.manualState:', window.manualState);
+      console.log('[复制数据] 收集到的数据:', data);
+      
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(formattedText).then(() => {
+          // 显示复制成功提示
+          const btn = document.getElementById('copyAllDataBtn');
+          if (btn) {
+            const originalText = btn.textContent;
+            btn.textContent = '已复制！';
+            btn.style.background = '#2d5a27';
+            setTimeout(() => {
+              btn.textContent = originalText;
+              btn.style.background = '#2d5a27';
+            }, 2000);
+          }
+        }).catch(err => {
+          console.error('复制失败:', err);
+          fallbackCopyToClipboard(formattedText);
+        });
+      } else {
+        fallbackCopyToClipboard(formattedText);
+      }
+    }, 300); // 增加到300ms延迟确保数据更新完成
+  }
+  
+  function fallbackCopyToClipboard(text) {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    try {
+      document.execCommand('copy');
+      const btn = document.getElementById('copyAllDataBtn');
+      if (btn) {
+        const originalText = btn.textContent;
+        btn.textContent = '已复制！';
+        setTimeout(() => {
+          btn.textContent = originalText;
+        }, 2000);
+      }
+    } catch (err) {
+      console.error('复制失败:', err);
+      alert('复制失败，请手动选择文本复制');
+    } finally {
+      document.body.removeChild(textArea);
+    }
+  }
+  
+  /* ========= Step4 本质结果展示模块 ========= */
+
+  // Step4 维度定义（与step4_linked.txt保持一致）
+  const STEP4_DIMENSIONS = [
+    // 10 个更底层维度
+    { key:"focus", name:"🎯 专注力", desc:"在干扰环境中保持注意力，必要时切换任务状态。" },
+    { key:"wm", name:"🧠 工作记忆", desc:"同时处理多个信息和任务的心智缓存能力。" },
+    { key:"learn", name:"📚 学习迁移", desc:"从经验中学习，并将知识应用到新情况中。" },
+    { key:"affect", name:"😌 情绪调节", desc:"觉察和管理自己的情绪状态，保持稳定表现。" },
+    { key:"boundary", name:"🛡️ 边界管理", desc:"明确个人边界，在关系中维护自己的需求。" },
+    { key:"uncertainty", name:"🌊 应对不确定", desc:"在信息不完整的情况下仍能稳定行动。" },
+    { key:"calibration", name:"🎯 现实感知", desc:"准确判断情况，基于事实而非情绪做决定。" },
+    { key:"habit", name:"🔄 习惯养成", desc:"将重要行为变成自动化的日常习惯。" },
+    { key:"social", name:"🤝 人际理解", desc:"理解他人想法和感受，在团队中有效协作。" },
+    { key:"meaning", name:"✨ 意义构建", desc:"为自己的经历和行动找到意义和价值。" },
+    // 必备 4 维
+    { key:"thinking", name:"🧩 思维方式", desc:"用不同角度和方法来分析和解决问题。" },
+    { key:"logic", name:"🔗 逻辑推理", desc:"用清晰的逻辑来分析问题和做决定。" },
+    { key:"entropy", name:"⚡ 混乱管理", desc:"在混乱环境中保持效率，建立有序的工作方式。" },
+    { key:"insight", name:"💡 洞察发现", desc:"敏锐发现问题本质和相关趋势。" }
+  ];
+
+  function loadStep4EssenceData() {
+    // 从PSYS会话系统或localStorage加载Step4数据
+    const meta = JSON.parse(sessionStorage.getItem(`${NS_STR}:currentSession`) || 'null');
+    
+    // 优先从PSYS会话系统读取
+    if (meta && meta.userId && window.PSYS && typeof PSYS.getLastSessionMetaForUser === 'function') {
+      try {
+        const userMeta = PSYS.getLastSessionMetaForUser(meta.teamId, meta.userId);
+        if (userMeta) {
+          const sess = PSYS.getSession(userMeta.teamId, userMeta.userId, userMeta.runId);
+          if (sess && sess.step4) {
+            return {
+              meta: sess.step4.meta || {},
+              scores: sess.step4.scores || []
+            };
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to load step4 session data:', e);
+      }
+    }
+    
+    // 回落到localStorage
+    const step4Meta = getNS('step4_meta', {});
+    const step4Scores = getNS('step4_scores', []);
+    
+    return {
+      meta: step4Meta,
+      scores: step4Scores,
+      hasData: step4Scores && step4Scores.length > 0
+    };
+  }
+
+  function renderStep4DimensionCard(dimension, meta, score) {
+    const dimMeta = meta[dimension.key] || {};
+    const tags = dimMeta.tags || [];
+    const scoreValue = score || 0;
+    
+    // 根据分数确定颜色
+    let scoreClass = 'warn';
+    if (scoreValue >= 80) scoreClass = 'good';
+    else if (scoreValue <= 50) scoreClass = 'bad';
+    
+    return `
+      <div class="step4-dimension-card" style="background:linear-gradient(135deg,#0f1733,#121833);border:1px solid var(--line);border-radius:12px;padding:12px;transition:all 0.3s ease">
+        <div class="dimension-header" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div class="dimension-name" style="font-size:14px;font-weight:600;color:var(--ink)">${dimension.name}</div>
+          <div class="dimension-score badge ${scoreClass}">
+            <div class="dot"></div>
+            <span>${scoreValue}</span>
+          </div>
+        </div>
+        <div class="dimension-desc" style="font-size:12px;color:var(--muted);margin-bottom:8px">${dimension.desc}</div>
+        ${tags.length > 0 ? `
+          <div class="dimension-tags" style="margin-top:8px">
+            <div class="smallnote" style="margin-bottom:4px">勾选标签 (${tags.length}个):</div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px">
+              ${tags.map(tag => `<span class="badge tag" style="font-size:10px;padding:1px 6px">${tag}</span>`).join('')}
+            </div>
+          </div>
+        ` : `
+          <div class="smallnote" style="color:#888;font-style:italic">未勾选任何标签</div>
+        `}
+      </div>
+    `;
+  }
+
+  function updateStep4EssenceDisplay() {
+    const data = loadStep4EssenceData();
+    const grid = document.getElementById('step4DimensionsGrid');
+    
+    if (!grid) return;
+    
+    // 检查是否有数据
+    const hasData = data.meta && Object.keys(data.meta).length > 0;
+    
+    let html = '';
+    STEP4_DIMENSIONS.forEach((dimension, index) => {
+      // 如果有数据，使用实际分数；如果没有数据，默认使用50
+      const score = hasData ? (data.scores[index] || 0) : 50;
+      // 如果没有数据，使用默认的meta信息
+      const meta = hasData ? data.meta : {};
+      html += renderStep4DimensionCard(dimension, meta, score);
+    });
+    
+    grid.innerHTML = html;
+  }
+
+  function initStep4EssenceModule() {
+    // 初始化收起/展开功能
+    const toggleBtn = document.getElementById('toggleStep4Essence');
+    const content = document.getElementById('step4EssenceContent');
+    
+    if (toggleBtn && content) {
+      toggleBtn.addEventListener('click', () => {
+        const isVisible = content.style.display !== 'none';
+        content.style.display = isVisible ? 'none' : 'block';
+        toggleBtn.textContent = isVisible ? '展开 ▼' : '收起 ▲';
+      });
+    }
+    
+    // 初始加载数据
+    updateStep4EssenceDisplay();
+    
+    // 定期更新数据（如果有数据变化）
+    setInterval(updateStep4EssenceDisplay, 5000);
+  }
+  
+  // 初始化结构化文本模块
+  document.addEventListener('DOMContentLoaded', () => {
+    const copyBtn = document.getElementById('copyAllDataBtn');
+    if (copyBtn) {
+      copyBtn.addEventListener('click', copyAllDataToClipboard);
+    }
+    
+    // 初始化Step4本质结果模块
+    initStep4EssenceModule();
+    
+    // 初始更新显示
+    setTimeout(updateStructuredTextDisplay, 1000);
+    
+    // 监听数据变化，自动更新显示
+    const originalApplyManualState = window.applyManualState;
+    if (originalApplyManualState) {
+      window.applyManualState = function() {
+        originalApplyManualState.apply(this, arguments);
+        setTimeout(updateStructuredTextDisplay, 500);
+      };
+    }
+  });
+
 })();
 </script>
 
